@@ -1,0 +1,16 @@
+
+
+#
+# PRODUCTION
+#
+
+python-dotenv
+requests
+pandas
+
+#
+# DEVELOPMENT AND TEST
+#
+
+pytest
+#autopep8
