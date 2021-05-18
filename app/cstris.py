@@ -1,12 +1,21 @@
 # references:
 # https://realpython.com/python3-object-oriented-programming/ used to learn about python OOP
 # https://levelup.gitconnected.com/writing-tetris-in-python-2a16bddb5318 used and modified this example for core tetris app
+# https://www.educative.io/edpresso/how-to-generate-a-random-string-in-python used for generating code
 
 
 import pygame
 import random
 import time
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+import os
+from dotenv import load_dotenv
+import string
 
+load_dotenv()
+
+# initialize set of colors that associate with each piece
 colors = [
     (0, 0, 0), # placeholder; colors[0] not used
     (0, 255, 255), # Aqua (line piece)
@@ -214,119 +223,222 @@ class Tetris:
         if self.intersects():
             self.figure.rotation = old_rotation
 
+def start_game(gamemode):
 
-# Initialize the game engine
-pygame.init()
+    gamemodes = [10, 20, 40]
 
-# Initialize counter to stop the loop when the game ends
-stop_loop_count = 0
+    # Initialize the game engine and music engine
+    pygame.init()
+    pygame.mixer.init()
 
-# Define some colors
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-GRAY = (128, 128, 128)
+    # load music and sound effect to play when lines are cleared
+    rootDir = os.path.dirname(os.path.abspath("top_level_file.txt"))
+    music = os.path.join(rootDir + "/sounds/music.mp3")
+    sound_effect = os.path.join(rootDir + "/sounds/clear.wav")
 
-size = (400, 500)
-screen = pygame.display.set_mode(size)
 
-pygame.display.set_caption("Cstris")
+    # Initialize counter to stop the loop when the game ends
+    stop_loop_count = 0
 
-# Loop until the user clicks the close button or the game ends.
-done = False
-clock = pygame.time.Clock()
-fps = 25
-game = Tetris(20, 10, 40)
-counter = 0
+    # Define some colors
+    BLACK = (0, 0, 0)
+    WHITE = (255, 255, 255)
+    GRAY = (128, 128, 128)
 
-pressing_down = False
+    size = (400, 500)
+    screen = pygame.display.set_mode(size)
+    pygame.display.set_caption("Cstris")
 
-start_time = time.time()
-final_time = time.time()
+    # Loop until the user clicks the close button or the game ends.
+    done = False
+    clock = pygame.time.Clock()
+    fps = 25
+    game = Tetris(20, 10, gamemodes[gamemode - 1])
+    counter = 0
 
-while not done:
-    if game.figure is None:
-        game.new_figure()
-    counter += 0.5
-    if counter > 100000:
-        counter = 0
+    # play music
+    pygame.mixer.music.load(music)
+    pygame.mixer.music.play(-1)
 
-    if fps != 0:
-        if counter % (fps // game.level // 2) == 0 or pressing_down:
-            if game.state == "start":
-                game.go_down()
+    pressing_down = False
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            done = True
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                game.rotate("right")
-            if event.key == pygame.K_z:
-                game.rotate("left")
-            if event.key == pygame.K_a:
-                game.rotate("180")
-            if event.key == pygame.K_DOWN:
-                pressing_down = True
-            if event.key == pygame.K_LEFT:
-                game.go_side(-1)
-            if event.key == pygame.K_RIGHT:
-                game.go_side(1)
-            if event.key == pygame.K_SPACE:
-                game.go_space()
-            if event.key == pygame.K_ESCAPE:
-                game.__init__(20, 10, 1)
+    start_time = time.time()
+    final_time = time.time()
 
-    if event.type == pygame.KEYUP:
-            if event.key == pygame.K_DOWN:
-                pressing_down = False
-            if event.key == pygame.K_LEFT:
-                pressing_left = False
-            if event.key == pygame.K_RIGHT:
-                pressing_right = False
+    while not done:
+        if game.figure is None:
+            game.new_figure()
+        counter += 0.5
+        if counter > 100000:
+            counter = 0
 
-    screen.fill(WHITE)
+        if fps != 0:
+            if counter % (fps // game.level // 2) == 0 or pressing_down:
+                if game.state == "start":
+                    game.go_down()
 
-    for i in range(game.height):
-        for j in range(game.width):
-            pygame.draw.rect(screen, GRAY, [game.x + game.zoom * j, game.y + game.zoom * i, game.zoom, game.zoom], 1)
-            if game.field[i][j] > 0:
-                pygame.draw.rect(screen, colors[game.field[i][j]],
-                                 [game.x + game.zoom * j + 1, game.y + game.zoom * i + 1, game.zoom - 2, game.zoom - 1])
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                done = True
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    game.rotate("right")
+                if event.key == pygame.K_z:
+                    game.rotate("left")
+                if event.key == pygame.K_a:
+                    game.rotate("180")
+                if event.key == pygame.K_DOWN:
+                    pressing_down = True
+                if event.key == pygame.K_LEFT:
+                    game.go_side(-1)
+                if event.key == pygame.K_RIGHT:
+                    game.go_side(1)
+                if event.key == pygame.K_SPACE:
+                    game.go_space()
+                if event.key == pygame.K_ESCAPE:
+                    game.__init__(20, 10, 1)
 
-    if game.figure is not None:
-        for i in range(4):
-            for j in range(4):
-                p = i * 4 + j
-                if p in game.figure.image():
-                    pygame.draw.rect(screen, colors[game.figure.color],
-                                     [game.x + game.zoom * (j + game.figure.x) + 1,
-                                      game.y + game.zoom * (i + game.figure.y) + 1,
-                                      game.zoom - 2, game.zoom - 2])
+        if event.type == pygame.KEYUP:
+                if event.key == pygame.K_DOWN:
+                    pressing_down = False
+                if event.key == pygame.K_LEFT:
+                    pressing_left = False
+                if event.key == pygame.K_RIGHT:
+                    pressing_right = False
 
-    game.timer = round(time.time() - start_time, 2)
+        screen.fill(WHITE)
 
-    font = pygame.font.SysFont('Calibri', 25, True, False)
-    font1 = pygame.font.SysFont('Calibri', 65, True, False)
-    lines_left_cap = font.render("Lines Left: ", True, BLACK)
-    lines_left_num = font.render(str(game.lines_left), 25, colors[2])
-    timer_cap = font.render("Time: " + str(game.timer) + "s", True, BLACK)
-    text_game_over = font1.render("Game Over!", True, BLACK)
-    text_final_time = font1.render("Time: " + str(round(final_time, 2)), True, colors[2])
+        for i in range(game.height):
+            for j in range(game.width):
+                pygame.draw.rect(screen, GRAY, [game.x + game.zoom * j, game.y + game.zoom * i, game.zoom, game.zoom], 1)
+                if game.field[i][j] > 0:
+                    pygame.draw.rect(screen, colors[game.field[i][j]],
+                                    [game.x + game.zoom * j + 1, game.y + game.zoom * i + 1, game.zoom - 2, game.zoom - 1])
 
-    screen.blit(lines_left_cap, [130, 15])
-    screen.blit(lines_left_num, [260, 15])
-    if game.state == "start":
-        screen.blit(timer_cap, [130, 470])
-    if game.state == "gameover":
-        stop_loop_count += 1
-        if stop_loop_count == 1:
-            final_time = time.time() - start_time
-        screen.blit(text_game_over, [20, 200])
-        screen.blit(text_final_time, [25, 265])
+        if game.figure is not None:
+            for i in range(4):
+                for j in range(4):
+                    p = i * 4 + j
+                    if p in game.figure.image():
+                        pygame.draw.rect(screen, colors[game.figure.color],
+                                        [game.x + game.zoom * (j + game.figure.x) + 1,
+                                        game.y + game.zoom * (i + game.figure.y) + 1,
+                                        game.zoom - 2, game.zoom - 2])
 
-    pygame.display.flip()
-    clock.tick(fps)
+        game.timer = round(time.time() - start_time, 2)
 
-pygame.quit()
+        font = pygame.font.SysFont('Calibri', 25, True, False)
+        font1 = pygame.font.SysFont('Calibri', 65, True, False)
+        lines_left_cap = font.render("Lines Left: ", True, BLACK)
+        lines_left_num = font.render(str(game.lines_left), 25, colors[2])
+        timer_cap = font.render("Time: " + str(game.timer) + "s", True, BLACK)
+        text_game_over = font1.render("Game Over!", True, BLACK)
+        text_final_time = font1.render("Time: " + str(round(final_time, 2)), True, colors[2])
 
-print(final_time)
+        screen.blit(lines_left_cap, [130, 15])
+        screen.blit(lines_left_num, [260, 15])
+        if game.state == "start":
+            screen.blit(timer_cap, [130, 470])
+        if game.state == "gameover":
+            stop_loop_count += 1
+            if stop_loop_count == 1:
+                final_time = time.time() - start_time
+                pygame.mixer.music.stop()
+            screen.blit(text_game_over, [20, 200])
+            screen.blit(text_final_time, [25, 265])
+
+        pygame.display.flip()
+        clock.tick(fps)
+
+        # pygame.quit()
+    
+    return final_time
+
+def display_menu():
+    choices = [1,2,3,4]
+    choice = 0
+    while choice not in choices:
+        print("***********************************")
+        print("Please select an option from the menu below: ")
+        print("Play Solo - 1")
+        print("Send Challenge - 2")
+        print("Receive Challenge - 3")
+        print("Exit - 4")
+        choice = int(input("***********************************\n"))
+        if choice not in choices:
+            print("Please select a valid choice.\n")
+            continue
+        return choice
+
+def display_gamemodes():
+    choices = [1,2,3,4]
+    choice = 0
+    while choice not in choices:
+        print("***********************************")
+        print("10 Lines - 1")
+        print("20 Lines - 2")
+        print("40 Lines - 3")
+        choice = int(input("***********************************\n"))
+        if choice not in choices:
+            print("Please select a valid choice.\n")
+            continue
+        return choice
+
+def generate_code(name, final_time, gamemode):
+    nums = string.digits
+    code = ''.join(random.choice(nums) for i in range(50))
+    final_time_str = str(round(final_time, 2))
+    code = name + code[:25] + final_time_str + code[25:] + str(gamemode)                
+    return code
+
+
+def send_challenge(username, email, final_time, gamemode):
+    SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", default="OOPS, please set env var called 'SENDGRID_API_KEY'")
+    SENDER_ADDRESS = os.getenv("SENDER_ADDRESS", default="OOPS, please set env var called 'SENDER_ADDRESS'")
+    client = SendGridAPIClient(SENDGRID_API_KEY)
+    subject = username + " has challenged you to Cstris!"
+    code = generate_code(username, final_time, gamemode)
+    html_content = f"""
+    <h3> You've been challenged to Cstris by {username}! </h3>
+    <ol>
+        Challenge Code: {code}
+    </ol>
+    <ol>
+        Paste the above code into your Cstris and show {username} who's boss!
+    </ol>
+    <ol>
+        (Don't have Cstris? Get it here: https://github.com/connorkeyes/cstris)
+    </ol>
+    """
+
+    message = Mail(from_email=SENDER_ADDRESS, to_emails=email, subject=subject, html_content=html_content)
+
+    try:
+        response = client.send(message)
+        print("Your challenge has been sent. May you conquer all your enemies.")
+
+    except:
+        print("Unfortunately, something went wrong. Your challenge could not be sent.")
+        print("Double check that the email is valid if you want to send a challenge!")
+
+print("***********************************")
+print("              CSTRIS               ")
+print("***********************************")
+name = input("Please enter your name: ")
+print("***********************************")
+print("Welcome to Cstris, " + name + "!")
+choice = display_menu()
+if choice == 1:
+    print("Please select gamemode: ")
+    gamemode = display_gamemodes()
+    print("Starting game...")
+    final_time = start_game(gamemode)
+    print(str(round(final_time,2)) + " seconds! Nice job!")
+elif choice == 2:
+    email = input("Please enter the email address to send a challenge to: ")
+    print("Please select gamemode: ")
+    gamemode = display_gamemodes()
+    print("Starting game...")
+    final_time = start_game(gamemode)
+    send_challenge(name, email, final_time, gamemode)
+
