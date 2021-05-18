@@ -223,7 +223,7 @@ class Tetris:
         if self.intersects():
             self.figure.rotation = old_rotation
 
-def start_game(gamemode):
+def start_game(gamemode, challenger, challenger_time, challenge_mode):
 
     gamemodes = [10, 20, 40]
 
@@ -334,18 +334,39 @@ def start_game(gamemode):
         timer_cap = font.render("Time: " + str(game.timer) + "s", True, BLACK)
         text_game_over = font1.render("Game Over!", True, BLACK)
         text_final_time = font1.render("Time: " + str(round(final_time, 2)), True, colors[2])
+        text_you_win = font1.render("You Win!", True, colors[3])
+        text_you_lose = font1.render("You Lose!", True, colors[2])
+        text_challenger_time = font.render(challenger + " Time: " + str(challenger_time), True, BLACK)
+       
+
 
         screen.blit(lines_left_cap, [130, 15])
         screen.blit(lines_left_num, [260, 15])
         if game.state == "start":
             screen.blit(timer_cap, [130, 470])
-        if game.state == "gameover":
-            stop_loop_count += 1
-            if stop_loop_count == 1:
-                final_time = time.time() - start_time
-                pygame.mixer.music.stop()
-            screen.blit(text_game_over, [20, 200])
-            screen.blit(text_final_time, [25, 265])
+
+        if challenge_mode == False:
+            if game.state == "gameover":
+                stop_loop_count += 1
+                if stop_loop_count == 1:
+                    final_time = time.time() - start_time
+                    pygame.mixer.music.stop()
+                screen.blit(text_game_over, [20, 200])
+                screen.blit(text_final_time, [25, 265])
+        else:
+            if game.state == "gameover":
+                stop_loop_count += 1
+                if stop_loop_count == 1:
+                    final_time = time.time() - start_time
+                    pygame.mixer.music.stop()
+                if final_time <= float(challenger_time):
+                    screen.blit(text_you_win, [20, 200])
+                    screen.blit(text_final_time, [20, 265])
+                    screen.blit(text_challenger_time, [20, 330])
+                else:
+                    screen.blit(text_you_lose, [20, 200])
+                    screen.blit(text_final_time, [20, 265])
+                    screen.blit(text_challenger_time, [20, 330])
 
         pygame.display.flip()
         clock.tick(fps)
@@ -421,6 +442,23 @@ def send_challenge(username, email, final_time, gamemode):
         print("Unfortunately, something went wrong. Your challenge could not be sent.")
         print("Double check that the email is valid if you want to send a challenge!")
 
+def accept_challenge(code):
+    challenger = ""
+    for char in code:
+        if char.isdigit() == False:
+            challenger += char
+        else:
+            break
+    
+    num_digits = len(code) - len(challenger) - 51
+    time_start = len(challenger) + 25
+    time_end = time_start + num_digits
+    final_time = code[time_start:time_end]
+
+    gamemode = code[len(code) - 1]
+
+    return [gamemode, challenger, final_time]
+
 print("***********************************")
 print("              CSTRIS               ")
 print("***********************************")
@@ -432,13 +470,20 @@ if choice == 1:
     print("Please select gamemode: ")
     gamemode = display_gamemodes()
     print("Starting game...")
-    final_time = start_game(gamemode)
+    final_time = start_game(gamemode, None, None, False)
     print(str(round(final_time,2)) + " seconds! Nice job!")
 elif choice == 2:
     email = input("Please enter the email address to send a challenge to: ")
     print("Please select gamemode: ")
     gamemode = display_gamemodes()
     print("Starting game...")
-    final_time = start_game(gamemode)
+    final_time = start_game(gamemode, None, None, False)
     send_challenge(name, email, final_time, gamemode)
-
+elif choice == 3:
+    code = input("Please copy and paste the code you received in your email...\n")
+    challenge_info = []
+    challenge_info = accept_challenge(code)
+    final_time = start_game(int(challenge_info[0]), challenge_info[1], float(challenge_info[2]), True)
+elif choice == 4:
+    print("Exiting...")
+    exit()
