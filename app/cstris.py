@@ -1,7 +1,7 @@
 # references:
 # https://realpython.com/python3-object-oriented-programming/ used to learn about python OOP
-# https://levelup.gitconnected.com/writing-tetris-in-python-2a16bddb5318 used and modified this example for core tetris app
-# https://www.educative.io/edpresso/how-to-generate-a-random-string-in-python used for generating code
+# https://levelup.gitconnected.com/writing-tetris-in-python-2a16bddb5318 used and modified this example for core tetris app (IMPORTANT)
+# https://www.educative.io/edpresso/how-to-generate-a-random-string-in-python used for help with generating code
 
 
 import pygame
@@ -168,6 +168,9 @@ class Tetris:
         return intersection
 
     def break_lines(self):
+        """
+        Deletes completed lines (given that every block in a line has a value.)
+        """
         lines = 0
         for i in range(1, self.height):
             zeros = 0
@@ -184,18 +187,27 @@ class Tetris:
             self.state = "gameover"
 
     def go_space(self):
+        """
+        Places figure at the bottom of the grid.
+        """
         while not self.intersects():
             self.figure.y += 1
         self.figure.y -= 1
         self.freeze()
 
     def go_down(self):
+        """
+        Moves figure down in increments of one y value.
+        """
         self.figure.y += 1
         if self.intersects():
             self.figure.y -= 1
             self.freeze()
 
     def freeze(self):
+        """
+        Freezes figure in place so it cannot be moved anymore; "game over" if figure is outside boundaries.
+        """
         for i in range(4):
             for j in range(4):
                 if i * 4 + j in self.figure.image():
@@ -206,12 +218,19 @@ class Tetris:
             self.state = "gameover"
 
     def go_side(self, dx):
+        """
+        Moves figure to the left or to the right by 1 x unit.
+        """
         old_x = self.figure.x
         self.figure.x += dx
         if self.intersects():
             self.figure.x = old_x
 
     def rotate(self, direction):
+        """
+        Rotates the figure left, right, or 180 degrees.
+        Params: Direction (passed into through user input key)
+        """
         old_rotation = self.figure.rotation
         if direction == "left":
             self.figure.rotateLeft()
@@ -224,6 +243,11 @@ class Tetris:
             self.figure.rotation = old_rotation
 
 def start_game(gamemode, challenger, challenger_time, challenge_mode):
+    """
+    Starts a game of CStris.
+    Params: gamemode (10 lines, 20 lines, or 40 lines), challenger (name), challenger_time 
+    (what time they got), and challenge mode (used to determine if user is being challenged or not)
+    """
 
     gamemodes = [10, 20, 40]
 
@@ -337,8 +361,6 @@ def start_game(gamemode, challenger, challenger_time, challenge_mode):
         text_you_win = font1.render("You Win!", True, colors[3])
         text_you_lose = font1.render("You Lose!", True, colors[2])
         text_challenger_time = font.render(challenger + " Time: " + str(challenger_time), True, BLACK)
-       
-
 
         screen.blit(lines_left_cap, [130, 15])
         screen.blit(lines_left_num, [260, 15])
@@ -376,23 +398,41 @@ def start_game(gamemode, challenger, challenger_time, challenge_mode):
     return final_time
 
 def display_menu():
-    choices = [1,2,3,4]
+    """
+    Displays the menu for the user to use.
+    """
+    choices = [1,2,3,4,5]
     choice = 0
-    while choice not in choices:
+    while choice not in choices or choice == 4:
         print("***********************************")
         print("Please select an option from the menu below: ")
         print("Play Solo - 1")
         print("Send Challenge - 2")
         print("Receive Challenge - 3")
-        print("Exit - 4")
+        print("Instructions - 4")
+        print("Exit - 5")
         choice = int(input("***********************************\n"))
         if choice not in choices:
             print("Please select a valid choice.\n")
             continue
+        if choice == 4:
+            print("***********************************")
+            print("INSTRUCTIONS:")
+            print("Move left and right: Arrow Keys")
+            print("Place Block: Space Bar")
+            print("Rotate Right 90 Degrees: Up Arrow Key")
+            print("Rotate Left 90 Degrees: 'Z' Key")
+            print("Rotate 180 Degrees: 'A' Key")
+            print("Fast Fall: Down Arrow Key")
+            print("***********************************")
+            continue
         return choice
 
 def display_gamemodes():
-    choices = [1,2,3,4]
+    """
+    Displays the 3 gamemode choices: clearing 10 lines, 20 lines, or 40 lines.
+    """
+    choices = [1,2,3]
     choice = 0
     while choice not in choices:
         print("***********************************")
@@ -406,6 +446,11 @@ def display_gamemodes():
         return choice
 
 def generate_code(name, final_time, gamemode):
+    """
+    Generates a (sort of) encrypted code that stores the Challenger's name, time, and gamemode.
+    Generated when user sends a challenge.
+    Params: name (username), final time(how long user took to complete CStris), gamemode
+    """
     nums = string.digits
     code = ''.join(random.choice(nums) for i in range(50))
     final_time_str = str(round(final_time, 2))
@@ -414,6 +459,10 @@ def generate_code(name, final_time, gamemode):
 
 
 def send_challenge(username, email, final_time, gamemode):
+    """
+    Sends challenge email to email of user's choice. Includes generated code.
+    Params: username, email(that user sends to), final time, gamemode
+    """
     SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", default="OOPS, please set env var called 'SENDGRID_API_KEY'")
     SENDER_ADDRESS = os.getenv("SENDER_ADDRESS", default="OOPS, please set env var called 'SENDER_ADDRESS'")
     client = SendGridAPIClient(SENDGRID_API_KEY)
@@ -443,6 +492,11 @@ def send_challenge(username, email, final_time, gamemode):
         print("Double check that the email is valid if you want to send a challenge!")
 
 def accept_challenge(code):
+    """
+    De-encrypts code and returns relevant data for challenge: (gamemode, challenger,
+    and final time)
+    Params: encrypted code
+    """
     challenger = ""
     for char in code:
         if char.isdigit() == False:
@@ -484,6 +538,7 @@ elif choice == 3:
     challenge_info = []
     challenge_info = accept_challenge(code)
     final_time = start_game(int(challenge_info[0]), challenge_info[1], float(challenge_info[2]), True)
-elif choice == 4:
+# choice 4 covered in display_menu(); did to keep instructions within menu display loop
+else:
     print("Exiting...")
     exit()
