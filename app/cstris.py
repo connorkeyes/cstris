@@ -524,14 +524,14 @@ if choice == 1:
     print("Please select gamemode: ")
     gamemode = display_gamemodes()
     print("Starting game...")
-    final_time = start_game(gamemode, None, None, False)
+    final_time = start_game(gamemode, '', 0, False)
     print(str(round(final_time,2)) + " seconds! Nice job!")
 elif choice == 2:
     email = input("Please enter the email address to send a challenge to: ")
     print("Please select gamemode: ")
     gamemode = display_gamemodes()
     print("Starting game...")
-    final_time = start_game(gamemode, None, None, False)
+    final_time = start_game(gamemode, '', 0, False)
     send_challenge(name, email, final_time, gamemode)
 elif choice == 3:
     code = input("Please copy and paste the code you received in your email...\n")
